@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang = "en">
+    <meta charset = "UTF-8">
+    <title>GPA Calculator</title>
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </head>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        var clicked = false;
+
+        function updateTableContent(res) {
+            $("#grades tbody").empty()
+            $("#grades_9 tbody").empty()
+            $("#grades_10 tbody").empty()
+            $("#grades_11 tbody").empty()
+            $("#grades_12 tbody").empty()
+
+            for(var key in res) {
+                if(res.hasOwnProperty(key)) {
+                    if (res[key]['grade'] >= 9 && res[key]['grade'] <= 12) {
+                        for(var courseIndex in res[key]['subjects']){
+                            course = res[key]['subjects'][courseIndex]
+                            if (course['weighted'] == 1) {
+                                $("#grades").append("<tr><td>" + course['subject'] + "</td><td>" + course['grade'] + "</td><td>" + res[key]['grade'] + "</td><td> Weighted </td><td>" + course['lastUpdate'] + "</td></tr>")
+                                $('#grades_' + res[key]['grade']).append("<tr><td>" + course['subject'] + "</td><td>" + course['grade'] + "</td><td> Weighted </td><td>" + course['lastUpdate'] + "</td></tr>");
+                            }
+                            else {
+                                $("#grades").append("<tr><td>" + course['subject'] + "</td><td>" + course['grade'] + "</td><td>" + res[key]['grade'] + "</td><td> Unweighted </td><td>" + course['lastUpdate'] + "</td></tr>")
+                                $('#grades_' + res[key]['grade']).append("<tr><td>" + course['subject'] + "</td><td>" + course['grade'] + "</td><td> Unweighted </td><td>" + course['lastUpdate'] + "</td></tr>");
+                            }
+                        }
+
+                        console.log(res[key])
+                        $("#unweighted_gpa_" + res[key]['grade']).text(res[key]['unweighted_gpa'])
+                        $("#weighted_gpa_" + res[key]['grade']).text(res[key]['weighted_gpa'])
+                    }
+                    else {
+                        $("#unweighted_gpa").text(res[key]['overall']['unweighted_gpa'])
+                        $("#weighted_gpa").text(res[key]['overall']['weighted_gpa'])
+                    }
+                }
+            }
+        }
+
+        $(document).ready(function(){
+            $.ajax({
+                type : 'GET',
+                url : '/get_grades',
+                success : function(res) {
+                    updateTableContent(res)
+                }
+            })
+
+
+            $("#addGrade").click(function(){
+                var good = true
+                var subject = $("#subject").val();
+                if (subject == "") {
+                    alert("Please Enter a Subject!");
+                    good = false
+                }
+                var grade = $("#grade").val();
+                if (grade > 1000) {
+                    alert("Please Enter a Grade Below 1000!")
+                    good = false
+                }
+                else if (grade < 0) {
+                    alert("Please Enter a Grade Above 0!")
+                    good = false
+                }
+
+                var weighted = $("#weighted").val();
+                var studentGrade = $("#studentGrade").val();
+
+                if (good) {
+                    $("#grades tbody").empty();
+
+                    $.ajax({
+                        type: 'GET',
+                        url: '/add_grades',
+                        data: { subject: subject, grade: grade, studentGrade: studentGrade, weighted: weighted },
+                        success: function (res) {
+                            updateTableContent(res)
+                        }
+                    });
+                }
+            })
+
+            $("#updateGrade").click(function(){
+                var good = true
+
+                var subject = $("#updateSubject").val();
+                if (subject == "") {
+                    alert("Please Enter a Subject!");
+                    good = false
+                }
+                var grade = $("#newGrade").val();
+                if (grade > 1000) {
+                    alert("Please Enter a Grade Below 1000!")
+                    good = false
+                }
+                else if (grade < 0) {
+                    alert("Please Enter a Grade Above 0!")
+                    good = false
+                }
+
+                if (good) {
+                    $("#grades tbody").empty();
+
+                    $.ajax({
+                        type: 'GET',
+                        url: '/update_grades',
+                        data: { subject: subject, grade: grade },
+                        success: function (res) {
+                            updateTableContent(res)
+                        }
+                    });
+                }
+            })
+
+            $("#deleteGrade").click(function(){
+                var good = true
+                var subject = $("#deleteSubject").val();
+                if (subject == "") {
+                    alert("Please Enter a Subject!");
+                    good = false
+                }
+                if (good){
+                    $("#grades tbody").empty();
+                    $.ajax({
+                        type: 'GET',
+                        url: '/delete_grades',
+                        data: { subject: subject},
+                        success: function (res) {
+                            updateTableContent(res)
+                        }
+                    });
+                }
+            })
+
+            $("#logOut").click(function(){
+                $.ajax({
+                    type: 'GET',
+                    url: '/log_out',
+                    success: function (res) {
+                        window.location.href = '/login'
+                    }
+                })
+            })
+        })
+    
+    </script>
+    <div class = "container text-center">
+        <div>
+            <br>
+            <h1> GPA Calculator </h1>
+            <div class = "container text-end">
+                <p id = "name"></p>
+                <button type = "button" id = "logOut" class = "btn btn-secondary">Log Out</button>
+            </div>
+            <div class="container mt-3">
+                <br>
+                <ul class="nav nav-tabs" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#overall_gpa">Overall Grades</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#grade_9">9th Grade</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#grade_10">10th Grade</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#grade_11">11th Grade</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#grade_12">12th Grade</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#instructions">Instructions</a>
+                  </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div id="overall_gpa" class="container tab-pane active"><br>
+                        <table id = "grades" class = "table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Subject Grade</th>
+                                    <th>Student Grade</th>
+                                    <th>Weighted</th>
+                                    <th>Last Update</th>
+                                </thead>
+                            </tr>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <br><br><br><br>
+            
+                        <form>
+                            <div class = "row">
+                                <div class = "col-sm-6">
+                                    <div class="card text-center">
+                                        <div class="card-header"><h3>Add Grade</h3></div>
+                                        <div class="card-body">
+                                            <label for = "subject">Subject</label>
+                                            <input type = "text" id = "subject" class = "form-control" required></input>
+                                            <label for = "grade">Subject Grade</label>
+                                            <input type = "number" id = "grade" class = "form-control" required></input>
+                                            <label for = "weighted">Weight</label>
+                                            <select name = "weighted" id = "weighted" class="form-select">
+                                                <option value = 0>Unweighted</option>
+                                                <option value = 1>Weighted</option>
+                                            </select><br>
+                                            <label for = "studentGrade">Student Grade</label>
+                                            <select name = "studentGrade" id = "studentGrade" class="form-select">
+                                                <option value = 9>9</option>
+                                                <option value = 10>10</option>
+                                                <option value = 11>11</option>
+                                                <option value = 11>12</option>
+                                            </select><br>
+                                            <button type = "button" id = "addGrade" class = "btn btn-success">Submit Grade</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class = "col-sm-6">
+                                    <div class = "card text-center">
+                                        <div class = "card-header"><h3>GPA</h3></div>
+                                        <div class = "card-body">
+                                            <label for = "unweighted_gpa">Unweighted GPA</label>
+                                            <p id = "unweighted_gpa"></p><br>
+                                            <label for = "weighted_gpa">Weighted GPA</label>
+                                            <p id = "weighted_gpa"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <br><br><br>
+                            <div class = "row">
+                                <div class = "col-sm-6">
+                                    <div class = "card text-center">
+                                        <div class = "card-header"><h3>Update Grade</h3></div>
+                                        <div class = "card-body">
+                                            <label for = "updateSubject">Subject</label>
+                                            <input type = "text" id = "updateSubject" class = "form-control" required></input>
+                                            <label for = "newGrade">New Grade</label>
+                                            <input type = "number" id = "newGrade" class = "form-control" required></input><br>
+                                            <button type = "button" id = "updateGrade" class = "btn btn-warning">Update Grade</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class = "col-sm-6">
+                                    <div class = "card text-center">
+                                        <div class = "card-header"><h3>Delete Grade</h3></div>
+                                        <div class = "card-body">
+                                            <label for = "deleteSubject">Subject</label>
+                                            <input type = "text" id = "deleteSubject" class = "form-control" required></input><br>
+                                            <button type = "button" id = "deleteGrade" class = "btn btn-danger">Delete Grade</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="grade_9" class="container tab-pane fade"><br>
+                        <table id = "grades_9" class = "table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Grade</th>
+                                    <th>Weighted</th>
+                                    <th>Last Update</th>
+                                </thead>
+                            </tr>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <br><br><br><br>
+                        <div class = "row">
+                            <div class = "col-sm-6">
+                                <div class = "card text-center">
+                                    <div class = "card-header"><h3>GPA</h3></div>
+                                    <div class = "card-body">
+                                        <label for = "unweighted_gpa_9">Unweighted GPA</label>
+                                        <p id = "unweighted_gpa_9"></p><br>
+                                        <label for = "weighted_gpa_9">Weighted GPA</label>
+                                        <p id = "weighted_gpa_9"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="grade_10" class="container tab-pane fade"><br>
+                        <table id = "grades_10" class = "table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Grade</th>
+                                    <th>Weighted</th>
+                                    <th>Last Update</th>
+                                </thead>
+                            </tr>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <br><br><br><br>
+                        <div class = "row">
+                            <div class = "col-sm-6">
+                                <div class = "card text-center">
+                                    <div class = "card-header"><h3>GPA</h3></div>
+                                    <div class = "card-body">
+                                        <label for = "unweighted_gpa_10">Unweighted GPA</label>
+                                        <p id = "unweighted_gpa_10"></p><br>
+                                        <label for = "weighted_gpa_10">Weighted GPA</label>
+                                        <p id = "weighted_gpa_10"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="grade_11" class="container tab-pane fade"><br>
+                        <table id = "grades_11" class = "table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Grade</th>
+                                    <th>Weighted</th>
+                                    <th>Last Update</th>
+                                </thead>
+                            </tr>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <br><br><br><br>
+                        <div class = "row">
+                            <div class = "col-sm-6">
+                                <div class = "card text-center">
+                                    <div class = "card-header"><h3>GPA</h3></div>
+                                    <div class = "card-body">
+                                        <label for = "unweighted_gpa_11">Unweighted GPA</label>
+                                        <p id = "unweighted_gpa_11"></p><br>
+                                        <label for = "weighted_gpa_11">Weighted GPA</label>
+                                        <p id = "weighted_gpa_11"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="grade_12" class="container tab-pane fade"><br>
+                        <table id = "grades_12" class = "table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Grade</th>
+                                    <th>Weighted</th>
+                                    <th>Last Update</th>
+                                </thead>
+                            </tr>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <br><br><br><br>
+                        <div class = "row">
+                            <div class = "col-sm-6">
+                                <div class = "card text-center">
+                                    <div class = "card-header"><h3>GPA</h3></div>
+                                    <div class = "card-body">
+                                        <label for = "unweighted_gpa_12">Unweighted GPA</label>
+                                        <p id = "unweighted_gpa"></p><br>
+                                        <label for = "weighted_gpa_12">Weighted GPA</label>
+                                        <p id = "weighted_gpa_12"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id = "instructions" class = "container tab-pane fade"><br>
+                        <h3>Instructions</h3>
+                        <br>
+                        <h5>Add Grades</h5>
+                        <p>To add a grade, enter in the subject details and press the "Add Grade" Button.</p>
+                        <br>
+                        <h5>Update Grades</h5>
+                        <p>To enter in a grade, enter in the subject details and press the "Update Grade" Button.</p>
+                        <br>
+                        <h5>Delete Grades</h5>
+                        <p>To delete a grade, enter in the subject details and press the "Delete Grade" Button.</p>
+                        <br>
+                        <h5>View Grade Specific Grades and GPAs</h5>
+                        <p>To view a grade specific grade, click on the tab with the grade you want.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</html>
